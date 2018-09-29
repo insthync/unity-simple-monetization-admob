@@ -11,10 +11,10 @@ public class AdmobMonetizationManager : MonoBehaviour
     public string androidAppId = "";
     public string iosAppId = "";
 
-    public AdmobBannerAdSetting bannerAdSetting;
-    public AdmobInterstitialAdSetting interstitialAdSetting;
-    public AdmobRewardedVideoAdSetting productRewardedVideoAdSetting;
-    public AdmobRewardedVideoAdSetting currencyRewardedVideoAdSetting;
+    public AdmobBannerAdSetting bannerAd;
+    public AdmobInterstitialAdSetting interstitialAd;
+    public AdmobRewardedVideoAdSetting[] productRewardedVideoAds;
+    public AdmobRewardedVideoAdSetting[] currencyRewardedVideoAds;
 
     public string AppId
     {
@@ -36,70 +36,76 @@ public class AdmobMonetizationManager : MonoBehaviour
         // Initialize the Google Mobile Ads SDK.
         MobileAds.Initialize(AppId);
 
-        if (bannerAdSetting != null && bannerAdSetting.showOnStart)
-            bannerAdSetting.ShowAd();
+        if (bannerAd != null && bannerAd.showOnStart)
+            bannerAd.ShowAd();
 
-        if (interstitialAdSetting != null && interstitialAdSetting.showOnStart)
-            interstitialAdSetting.ShowAd();
+        if (interstitialAd != null && interstitialAd.showOnStart)
+            interstitialAd.ShowAd();
 
-        if (productRewardedVideoAdSetting != null)
+        if (productRewardedVideoAds != null && productRewardedVideoAds.Length > 0)
         {
-            productRewardedVideoAdSetting.onRewarded = (reward) =>
+            foreach (var ad in productRewardedVideoAds)
             {
-                for (var i = 0; i < (int)reward.Amount; ++i)
+                ad.onRewarded = (reward) =>
                 {
-                    MonetizationManager.Save.AddPurchasedItem(reward.Type);
-                }
-            };
-            if (productRewardedVideoAdSetting.showOnStart)
-                productRewardedVideoAdSetting.ShowAd();
+                    for (var i = 0; i < (int)reward.Amount; ++i)
+                    {
+                        MonetizationManager.Save.AddPurchasedItem(reward.Type);
+                    }
+                };
+                if (ad.showOnStart)
+                    ad.ShowAd();
+            }
         }
 
-        if (currencyRewardedVideoAdSetting != null)
+        if (currencyRewardedVideoAds != null && currencyRewardedVideoAds.Length > 0)
         {
-            currencyRewardedVideoAdSetting.onRewarded = (reward) =>
+            foreach (var ad in currencyRewardedVideoAds)
             {
-                MonetizationManager.Save.AddCurrency(reward.Type, (int)reward.Amount);
-            };
-            if (currencyRewardedVideoAdSetting.showOnStart)
-                currencyRewardedVideoAdSetting.ShowAd();
+                ad.onRewarded = (reward) =>
+                {
+                    MonetizationManager.Save.AddCurrency(reward.Type, (int)reward.Amount);
+                };
+                if (ad.showOnStart)
+                    ad.ShowAd();
+            }
         }
     }
 
     public void ShowBannerAd()
     {
-        if (bannerAdSetting != null)
-            bannerAdSetting.ShowAd();
+        if (bannerAd != null)
+            bannerAd.ShowAd();
     }
 
     public void HideBannerAd()
     {
-        if (bannerAdSetting != null)
-            bannerAdSetting.HideAd();
+        if (bannerAd != null)
+            bannerAd.HideAd();
     }
 
     public void ShowInterstitialAd()
     {
-        if (interstitialAdSetting != null)
-            interstitialAdSetting.ShowAd();
+        if (interstitialAd != null)
+            interstitialAd.ShowAd();
     }
 
     public void HideInterstitialAd()
     {
-        if (interstitialAdSetting != null)
-            interstitialAdSetting.HideAd();
+        if (interstitialAd != null)
+            interstitialAd.HideAd();
     }
 
     public void ShowProductRewardedVideoAd()
     {
-        if (productRewardedVideoAdSetting != null)
-            productRewardedVideoAdSetting.ShowAd();
+        if (productRewardedVideoAds != null && productRewardedVideoAds.Length > 0)
+            productRewardedVideoAds[Random.Range(0, productRewardedVideoAds.Length)].ShowAd();
     }
 
     public void ShowCurrencyRewardedVideoAd()
     {
-        if (currencyRewardedVideoAdSetting != null)
-            currencyRewardedVideoAdSetting.ShowAd();
+        if (currencyRewardedVideoAds != null && currencyRewardedVideoAds.Length > 0)
+            currencyRewardedVideoAds[Random.Range(0, currencyRewardedVideoAds.Length)].ShowAd();
     }
 }
 
