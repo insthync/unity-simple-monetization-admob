@@ -186,6 +186,9 @@ public enum EAdPosition
 }
 
 [System.Serializable]
+public class AdmobRewardedVideoEvent : UnityEvent<string> { }
+
+[System.Serializable]
 public class AdmobBannerAdSetting : BaseAdmobAdSetting
 {
     [Header("Banner Settings")]
@@ -330,6 +333,11 @@ public class AdmobRewardedVideoAdSetting : BaseAdmobAdSetting
 {
     [Header("Events")]
     public UnityEvent onAdStarted;
+    public AdmobRewardedVideoEvent onAdRewarded;
+
+    [Header("Event Text Formats")]
+    [Tooltip("Rewarded Format: {0} = Product Name, {1} = Amount")]
+    public string rewardedFormat = "You received {1} {0}(s)";
 
     public System.Action<Reward> onRewarded;
 
@@ -373,5 +381,8 @@ public class AdmobRewardedVideoAdSetting : BaseAdmobAdSetting
     {
         if (onRewarded != null)
             onRewarded.Invoke(args);
+
+        if (onAdRewarded != null)
+            onAdRewarded.Invoke(string.Format(rewardedFormat, args.Type, args.Amount));
     }
 }
