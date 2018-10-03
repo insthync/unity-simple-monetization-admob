@@ -36,16 +36,25 @@ public class AdmobMonetizationManager : MonoBehaviour
         // Initialize the Google Mobile Ads SDK.
         MobileAds.Initialize(AppId);
 
-        if (bannerAd != null && bannerAd.showOnStart)
-            bannerAd.ShowAd();
+        if (bannerAd != null)
+        {
+            bannerAd.Init();
+            if (bannerAd.showOnStart)
+                bannerAd.ShowAd();
+        }
 
-        if (interstitialAd != null && interstitialAd.showOnStart)
-            interstitialAd.ShowAd();
+        if (interstitialAd != null)
+        {
+            interstitialAd.Init();
+            if (interstitialAd.showOnStart)
+                interstitialAd.ShowAd();
+        }
 
         if (productRewardedVideoAds != null && productRewardedVideoAds.Length > 0)
         {
             foreach (var ad in productRewardedVideoAds)
             {
+                ad.Init();
                 ad.onRewarded = (reward) =>
                 {
                     for (var i = 0; i < (int)reward.Amount; ++i)
@@ -62,6 +71,7 @@ public class AdmobMonetizationManager : MonoBehaviour
         {
             foreach (var ad in currencyRewardedVideoAds)
             {
+                ad.Init();
                 ad.onRewarded = (reward) =>
                 {
                     MonetizationManager.Save.AddCurrency(reward.Type, (int)reward.Amount);
@@ -125,6 +135,8 @@ public abstract class BaseAdmobAdSetting
     public UnityEvent onAdOpening;
     public UnityEvent onAdClosed;
 
+    public bool IsInit { get; protected set; }
+
     public string UnitId
     {
         get
@@ -164,6 +176,7 @@ public abstract class BaseAdmobAdSetting
             onAdClosed.Invoke();
     }
 
+    public abstract void Init();
     public abstract void ShowAd();
     public abstract void HideAd();
 }
@@ -204,83 +217,88 @@ public class AdmobBannerAdSetting : BaseAdmobAdSetting
     public EAdPosition adPosition;
     public int customPositionX;
     public int customPositionY;
-
+    
     private AdSize size;
     private AdPosition position;
     private BannerView bannerView;
 
-    public override void ShowAd()
+    public override void Init()
     {
-        if (bannerView == null)
+        if (IsInit)
+            return;
+
+        IsInit = true;
+
+        switch (adSize)
         {
-            switch (adSize)
-            {
-                case EAdSize.BANNER:
-                    size = AdSize.Banner;
-                    break;
-                case EAdSize.IAB_BANNER:
-                    size = AdSize.IABBanner;
-                    break;
-                case EAdSize.MEDIUM_RECTANGLE:
-                    size = AdSize.MediumRectangle;
-                    break;
-                case EAdSize.LEADERBOARD:
-                    size = AdSize.Leaderboard;
-                    break;
-                case EAdSize.SMART_BANNER:
-                    size = AdSize.SmartBanner;
-                    break;
-                case EAdSize.CUSTOM:
-                    size = new AdSize(customWidth, customHeight);
-                    break;
-            }
-
-            switch (adPosition)
-            {
-                case EAdPosition.BOTTOM:
-                    position = AdPosition.Bottom;
-                    break;
-                case EAdPosition.BOTTOM_LEFT:
-                    position = AdPosition.BottomLeft;
-                    break;
-                case EAdPosition.BOTTOM_RIGHT:
-                    position = AdPosition.BottomRight;
-                    break;
-                case EAdPosition.CENTER:
-                    position = AdPosition.Center;
-                    break;
-                case EAdPosition.TOP:
-                    position = AdPosition.Top;
-                    break;
-                case EAdPosition.TOP_LEFT:
-                    position = AdPosition.TopLeft;
-                    break;
-                case EAdPosition.TOP_RIGHT:
-                    position = AdPosition.TopRight;
-                    break;
-            }
-
-            if (adPosition == EAdPosition.CUSTOM)
-                bannerView = new BannerView(UnitId, size, customPositionX, customPositionY);
-            else
-                bannerView = new BannerView(UnitId, size, position);
-
-            // Called when an ad request has successfully loaded.
-            bannerView.OnAdLoaded += HandleOnAdLoaded;
-            // Called when an ad request failed to load.
-            bannerView.OnAdFailedToLoad += HandleOnAdFailedToLoad;
-            // Called when an ad is clicked.
-            bannerView.OnAdOpening += HandleOnAdOpened;
-            // Called when the user returned from the app after an ad click.
-            bannerView.OnAdClosed += HandleOnAdClosed;
+            case EAdSize.BANNER:
+                size = AdSize.Banner;
+                break;
+            case EAdSize.IAB_BANNER:
+                size = AdSize.IABBanner;
+                break;
+            case EAdSize.MEDIUM_RECTANGLE:
+                size = AdSize.MediumRectangle;
+                break;
+            case EAdSize.LEADERBOARD:
+                size = AdSize.Leaderboard;
+                break;
+            case EAdSize.SMART_BANNER:
+                size = AdSize.SmartBanner;
+                break;
+            case EAdSize.CUSTOM:
+                size = new AdSize(customWidth, customHeight);
+                break;
         }
+
+        switch (adPosition)
+        {
+            case EAdPosition.BOTTOM:
+                position = AdPosition.Bottom;
+                break;
+            case EAdPosition.BOTTOM_LEFT:
+                position = AdPosition.BottomLeft;
+                break;
+            case EAdPosition.BOTTOM_RIGHT:
+                position = AdPosition.BottomRight;
+                break;
+            case EAdPosition.CENTER:
+                position = AdPosition.Center;
+                break;
+            case EAdPosition.TOP:
+                position = AdPosition.Top;
+                break;
+            case EAdPosition.TOP_LEFT:
+                position = AdPosition.TopLeft;
+                break;
+            case EAdPosition.TOP_RIGHT:
+                position = AdPosition.TopRight;
+                break;
+        }
+
+        if (adPosition == EAdPosition.CUSTOM)
+            bannerView = new BannerView(UnitId, size, customPositionX, customPositionY);
+        else
+            bannerView = new BannerView(UnitId, size, position);
+
+        // Called when an ad request has successfully loaded.
+        bannerView.OnAdLoaded += HandleOnAdLoaded;
+        // Called when an ad request failed to load.
+        bannerView.OnAdFailedToLoad += HandleOnAdFailedToLoad;
+        // Called when an ad is clicked.
+        bannerView.OnAdOpening += HandleOnAdOpened;
+        // Called when the user returned from the app after an ad click.
+        bannerView.OnAdClosed += HandleOnAdClosed;
 
         // Create an empty ad request.
         AdRequest request = new AdRequest.Builder().Build();
-
         // Load the banner with the request.
         bannerView.LoadAd(request);
+    }
 
+    public override void ShowAd()
+    {
+        Init();
         bannerView.Show();
     }
 
@@ -299,28 +317,33 @@ public class AdmobInterstitialAdSetting : BaseAdmobAdSetting
 {
     private InterstitialAd interstitial;
 
-    public override void ShowAd()
+    public override void Init()
     {
-        if (interstitial == null)
-        {
-            interstitial = new InterstitialAd(UnitId);
+        if (IsInit)
+            return;
 
-            // Called when an ad request has successfully loaded.
-            interstitial.OnAdLoaded += HandleOnAdLoaded;
-            // Called when an ad request failed to load.
-            interstitial.OnAdFailedToLoad += HandleOnAdFailedToLoad;
-            // Called when an ad is shown.
-            interstitial.OnAdOpening += HandleOnAdOpened;
-            // Called when the ad is closed.
-            interstitial.OnAdClosed += HandleOnAdClosed;
-        }
+        IsInit = true;
+
+        interstitial = new InterstitialAd(UnitId);
+
+        // Called when an ad request has successfully loaded.
+        interstitial.OnAdLoaded += HandleOnAdLoaded;
+        // Called when an ad request failed to load.
+        interstitial.OnAdFailedToLoad += HandleOnAdFailedToLoad;
+        // Called when an ad is shown.
+        interstitial.OnAdOpening += HandleOnAdOpened;
+        // Called when the ad is closed.
+        interstitial.OnAdClosed += HandleOnAdClosed;
 
         // Create an empty ad request.
         AdRequest request = new AdRequest.Builder().Build();
-
         // Load the banner with the request.
         interstitial.LoadAd(request);
+    }
 
+    public override void ShowAd()
+    {
+        Init();
         interstitial.Show();
     }
 
@@ -346,16 +369,16 @@ public class AdmobRewardedVideoAdSetting : BaseAdmobAdSetting
     public string rewardedFormat = "You received {1} {0}(s)";
 
     public System.Action<Reward> onRewarded;
-
     private RewardBasedVideoAd rewardBasedVideo;
 
-    public override void ShowAd()
+    public override void Init()
     {
+        if (IsInit)
+            return;
+
+        IsInit = true;
+
         rewardBasedVideo = RewardBasedVideoAd.Instance;
-        // Create an empty ad request.
-        AdRequest request = new AdRequest.Builder().Build();
-        // Load the rewarded video ad with the request.
-        rewardBasedVideo.LoadAd(request, UnitId);
 
         // Called when an ad request has successfully loaded.
         rewardBasedVideo.OnAdLoaded += HandleOnAdLoaded;
@@ -370,6 +393,15 @@ public class AdmobRewardedVideoAdSetting : BaseAdmobAdSetting
         // Called when the user should be rewarded for watching a video.
         rewardBasedVideo.OnAdRewarded += HandleRewardBasedVideoRewarded;
 
+        // Create an empty ad request.
+        AdRequest request = new AdRequest.Builder().Build();
+        // Load the rewarded video ad with the request.
+        rewardBasedVideo.LoadAd(request, UnitId);
+    }
+
+    public override void ShowAd()
+    {
+        Init();
         rewardBasedVideo.Show();
     }
 

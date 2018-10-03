@@ -22,6 +22,8 @@ public class UIWatchAdmobRewardedVideoAdsButton : MonoBehaviour
         button = GetComponent<Button>();
         button.onClick.AddListener(OnClick);
 
+        setting.Init();
+
         switch (buttonType)
         {
             case WatchAdsButtonType.RewardCurrency:
