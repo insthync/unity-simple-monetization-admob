@@ -134,6 +134,7 @@ public abstract class BaseAdmobAdSetting
     public UnityEvent onAdFailedToLoad;
     public UnityEvent onAdOpening;
     public UnityEvent onAdClosed;
+    public UnityEvent onShowAdNotLoaded;
 
     public bool IsInit { get; protected set; }
 
@@ -344,7 +345,10 @@ public class AdmobInterstitialAdSetting : BaseAdmobAdSetting
     public override void ShowAd()
     {
         Init();
-        interstitial.Show();
+        if (interstitial != null && interstitial.IsLoaded())
+            interstitial.Show();
+        else
+            onShowAdNotLoaded.Invoke();
     }
 
     public override void HideAd()
@@ -402,7 +406,10 @@ public class AdmobRewardedVideoAdSetting : BaseAdmobAdSetting
     public override void ShowAd()
     {
         Init();
-        rewardBasedVideo.Show();
+        if (rewardBasedVideo != null && rewardBasedVideo.IsLoaded())
+            rewardBasedVideo.Show();
+        else
+            onShowAdNotLoaded.Invoke();
     }
 
     public override void HideAd()
