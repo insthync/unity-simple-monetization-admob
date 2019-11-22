@@ -15,6 +15,7 @@ public class AdmobMonetizationManager : MonoBehaviour
     public AdmobInterstitialAdSetting interstitialAd;
     public AdmobRewardedVideoAdSetting[] productRewardedVideoAds;
     public AdmobRewardedVideoAdSetting[] currencyRewardedVideoAds;
+    public AdmobRewardedVideoAdSetting overridePlacementRewardedAd;
 
     public string AppId
     {
@@ -117,6 +118,21 @@ public class AdmobMonetizationManager : MonoBehaviour
         if (currencyRewardedVideoAds != null && currencyRewardedVideoAds.Length > 0)
             currencyRewardedVideoAds[Random.Range(0, currencyRewardedVideoAds.Length)].ShowAd();
     }
+
+    public void ShowOverridePlacementRewardedAd(string placementId)
+    {
+        if (overridePlacementRewardedAd != null)
+        {
+            overridePlacementRewardedAd.ShowAd();
+            overridePlacementRewardedAd.onRewarded = (reward) =>
+            {
+                System.Action<MonetizationManager.RemakeShowResult> showResultHandler;
+                if (MonetizationManager.ShowResultCallbacks.TryGetValue(placementId, out showResultHandler) &&
+                    showResultHandler != null)
+                    showResultHandler.Invoke(MonetizationManager.RemakeShowResult.Finished);
+            };
+        }
+    }
 }
 
 [System.Serializable]
@@ -135,8 +151,6 @@ public abstract class BaseAdmobAdSetting
     public UnityEvent onAdOpening;
     public UnityEvent onAdClosed;
     public UnityEvent onShowAdNotLoaded;
-
-    public bool IsInit { get; protected set; }
 
     public string UnitId
     {
@@ -222,6 +236,7 @@ public class AdmobBannerAdSetting : BaseAdmobAdSetting
     private AdSize size;
     private AdPosition position;
     private BannerView bannerView;
+    public bool IsInit { get; protected set; }
 
     public override void Init()
     {
@@ -310,6 +325,7 @@ public class AdmobBannerAdSetting : BaseAdmobAdSetting
             bannerView.Destroy();
             bannerView = null;
         }
+        IsInit = false;
     }
 }
 
@@ -317,6 +333,7 @@ public class AdmobBannerAdSetting : BaseAdmobAdSetting
 public class AdmobInterstitialAdSetting : BaseAdmobAdSetting
 {
     private InterstitialAd interstitial;
+    public bool IsInit { get; protected set; }
 
     public override void Init()
     {
@@ -358,56 +375,47 @@ public class AdmobInterstitialAdSetting : BaseAdmobAdSetting
             interstitial.Destroy();
             interstitial = null;
         }
+        IsInit = false;
     }
 }
 
 [System.Serializable]
-public class AdmobRewardedVideoAdSetting : BaseAdmobAdSetting
+public class BaseAdmobRewardedVideoAdSetting : BaseAdmobAdSetting
 {
-    [Header("Events")]
-    public UnityEvent onAdStarted;
-    public AdmobRewardedVideoEvent onAdRewarded;
-
-    [Header("Event Text Formats")]
-    [Tooltip("Rewarded Format: {0} = Product Name, {1} = Amount")]
-    public string rewardedFormat = "You received {1} {0}(s)";
-
+    public static bool IsInitEvent;
     public System.Action<Reward> onRewarded;
-    private RewardBasedVideoAd rewardBasedVideo;
 
     public override void Init()
     {
-        if (IsInit)
-            return;
+        if (!IsInitEvent)
+        {
+            IsInitEvent = true;
 
-        IsInit = true;
-
-        rewardBasedVideo = RewardBasedVideoAd.Instance;
-
-        // Called when an ad request has successfully loaded.
-        rewardBasedVideo.OnAdLoaded += HandleOnAdLoaded;
-        // Called when an ad request failed to load.
-        rewardBasedVideo.OnAdFailedToLoad += HandleOnAdFailedToLoad;
-        // Called when an ad is shown.
-        rewardBasedVideo.OnAdOpening += HandleOnAdOpened;
-        // Called when the ad is closed.
-        rewardBasedVideo.OnAdClosed += HandleOnAdClosed;
-        // Called when the ad starts to play.
-        rewardBasedVideo.OnAdStarted += HandleRewardBasedVideoStarted;
-        // Called when the user should be rewarded for watching a video.
-        rewardBasedVideo.OnAdRewarded += HandleRewardBasedVideoRewarded;
+            // Called when an ad request has successfully loaded.
+            RewardBasedVideoAd.Instance.OnAdLoaded += HandleOnAdLoaded;
+            // Called when an ad request failed to load.
+            RewardBasedVideoAd.Instance.OnAdFailedToLoad += HandleOnAdFailedToLoad;
+            // Called when an ad is shown.
+            RewardBasedVideoAd.Instance.OnAdOpening += HandleOnAdOpened;
+            // Called when the ad is closed.
+            RewardBasedVideoAd.Instance.OnAdClosed += HandleOnAdClosed;
+            // Called when the ad starts to play.
+            RewardBasedVideoAd.Instance.OnAdStarted += HandleRewardBasedVideoStarted;
+            // Called when the user should be rewarded for watching a video.
+            RewardBasedVideoAd.Instance.OnAdRewarded += HandleRewardBasedVideoRewarded;
+        }
 
         // Create an empty ad request.
         AdRequest request = new AdRequest.Builder().Build();
         // Load the rewarded video ad with the request.
-        rewardBasedVideo.LoadAd(request, UnitId);
+        RewardBasedVideoAd.Instance.LoadAd(request, UnitId);
     }
 
     public override void ShowAd()
     {
         Init();
-        if (rewardBasedVideo != null && rewardBasedVideo.IsLoaded())
-            rewardBasedVideo.Show();
+        if (RewardBasedVideoAd.Instance.IsLoaded())
+            RewardBasedVideoAd.Instance.Show();
         else
             onShowAdNotLoaded.Invoke();
     }
@@ -416,16 +424,39 @@ public class AdmobRewardedVideoAdSetting : BaseAdmobAdSetting
     {
     }
 
-    public void HandleRewardBasedVideoStarted(object sender, System.EventArgs args)
+    public virtual void HandleRewardBasedVideoStarted(object sender, System.EventArgs args)
     {
+    }
+
+    public virtual void HandleRewardBasedVideoRewarded(object sender, Reward args)
+    {
+        if (onRewarded != null)
+            onRewarded.Invoke(args);
+    }
+}
+
+[System.Serializable]
+public class AdmobRewardedVideoAdSetting : BaseAdmobRewardedVideoAdSetting
+{
+    [Header("Events")]
+    public UnityEvent onAdStarted;
+    public AdmobRewardedVideoEvent onAdRewarded;
+
+    [Header("Event Text Formats")]
+    [Tooltip("Rewarded Format: {0} = Product Name, {1} = Amount")]
+    public string rewardedFormat = "You received {1} {0}(s)";
+    
+    public override void HandleRewardBasedVideoStarted(object sender, System.EventArgs args)
+    {
+        base.HandleRewardBasedVideoStarted(sender, args);
+
         if (onAdStarted != null)
             onAdStarted.Invoke();
     }
 
-    public void HandleRewardBasedVideoRewarded(object sender, Reward args)
+    public override void HandleRewardBasedVideoRewarded(object sender, Reward args)
     {
-        if (onRewarded != null)
-            onRewarded.Invoke(args);
+        base.HandleRewardBasedVideoRewarded(sender, args);
 
         if (onAdRewarded != null)
             onAdRewarded.Invoke(string.Format(rewardedFormat, args.Type, args.Amount));
