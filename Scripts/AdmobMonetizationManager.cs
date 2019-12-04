@@ -15,7 +15,7 @@ public class AdmobMonetizationManager : MonoBehaviour
     public AdmobInterstitialAdSetting interstitialAd;
     public AdmobRewardedVideoAdSetting[] productRewardedVideoAds;
     public AdmobRewardedVideoAdSetting[] currencyRewardedVideoAds;
-    public AdmobRewardedVideoAdSetting overridePlacementRewardedAd;
+    public BaseAdmobRewardedVideoAdSetting overridePlacementRewardedAd;
 
     public string AppId
     {
