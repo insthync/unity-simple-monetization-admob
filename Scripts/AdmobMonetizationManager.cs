@@ -7,35 +7,16 @@ using UnityEngine.Events;
 [RequireComponent(typeof(MonetizationManager))]
 public class AdmobMonetizationManager : MonoBehaviour
 {
-    [Header("AppID Settings")]
-    public string androidAppId = "";
-    public string iosAppId = "";
-
     public AdmobBannerAdSetting bannerAd;
     public AdmobInterstitialAdSetting interstitialAd;
     public AdmobRewardedVideoAdSetting[] productRewardedVideoAds;
     public AdmobRewardedVideoAdSetting[] currencyRewardedVideoAds;
     public BaseAdmobRewardedVideoAdSetting overridePlacementRewardedAd;
 
-    public string AppId
-    {
-        get
-        {
-            switch (Application.platform)
-            {
-                case RuntimePlatform.Android:
-                    return androidAppId;
-                case RuntimePlatform.IPhonePlayer:
-                    return iosAppId;
-            }
-            return "unexpected_platform";
-        }
-    }
-
     public void Start()
     {
         // Initialize the Google Mobile Ads SDK.
-        MobileAds.Initialize(AppId);
+        MobileAds.Initialize(OnInit);
         if (bannerAd != null)
         {
             bannerAd.Init();
@@ -80,6 +61,11 @@ public class AdmobMonetizationManager : MonoBehaviour
                     ad.ShowAd();
             }
         }
+    }
+
+    private void OnInit(InitializationStatus status)
+    {
+
     }
 
     public void ShowBannerAd()
@@ -315,10 +301,6 @@ public class AdmobBannerAdSetting : BaseAdmobAdSetting
 
         // Create an empty ad request.
         var builder = new AdRequest.Builder();
-        foreach (var testDevice in testDevices)
-        {
-            builder.AddTestDevice(testDevice);
-        }
         var request = builder.Build();
         // Load the banner with the request.
         bannerView.LoadAd(request);
@@ -367,10 +349,6 @@ public class AdmobInterstitialAdSetting : BaseAdmobAdSetting
 
         // Create an empty ad request.
         var builder = new AdRequest.Builder();
-        foreach (var testDevice in testDevices)
-        {
-            builder.AddTestDevice(testDevice);
-        }
         var request = builder.Build();
         // Load the banner with the request.
         interstitial.LoadAd(request);
@@ -439,10 +417,6 @@ public class BaseAdmobRewardedVideoAdSetting : BaseAdmobAdSetting
 
         // Create an empty ad request.
         var builder = new AdRequest.Builder();
-        foreach (var testDevice in testDevices)
-        {
-            builder.AddTestDevice(testDevice);
-        }
         var request = builder.Build();
         // Load the banner with the request.
         rewardedAd.LoadAd(request);
@@ -477,7 +451,7 @@ public class BaseAdmobRewardedVideoAdSetting : BaseAdmobAdSetting
     {
     }
 
-    public virtual void HandleRewardBasedVideoFailedToLoad(object sender, AdErrorEventArgs args)
+    public virtual void HandleRewardBasedVideoFailedToLoad(object sender, AdFailedToLoadEventArgs args)
     {
     }
 
